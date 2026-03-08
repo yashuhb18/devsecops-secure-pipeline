@@ -1,0 +1,39 @@
+name: DevSecOps Pipeline
+
+on: [push]
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Security Tools
+        run: |
+          pip install semgrep safety
+
+      - name: Run Semgrep Scan
+        run: semgrep --config=auto .
+
+      - name: Run Dependency Scan
+        run: safety check
+
+      - name: Build Docker Image
+        run: docker build -t devsecops-app .
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget -y
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
+
+      - name: Scan Docker Image
+        run: trivy image devsecops-app
